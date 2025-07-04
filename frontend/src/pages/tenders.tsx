@@ -3,17 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Tenders() {
-  const [tenders, setTenders] = useState([]);
+  const [tenders, setTenders] = useState<any[]>([]);
   const [form, setForm] = useState({
     title: '',
     description: '',
     deadline: '',
     budget: '',
-    companyId: '',
   });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [companyId, setCompanyId] = useState('');
+  const [companyIdFilter, setCompanyIdFilter] = useState('');
   const [proposals, setProposals] = useState<{ [key: string]: any[] }>({});
 
   const navigate = useNavigate();
@@ -21,7 +20,7 @@ export default function Tenders() {
 
   const fetchTenders = async () => {
     const params: any = { page, limit };
-    if (companyId) params.companyId = companyId;
+    if (companyIdFilter) params.companyId = companyIdFilter;
 
     try {
       const res = await axios.get('http://localhost:5000/api/tenders', {
@@ -32,7 +31,7 @@ export default function Tenders() {
       });
       setTenders(res.data.tenders);
       setTotal(res.data.total);
-    } catch (err) {
+    } catch {
       alert('Failed to fetch tenders');
     }
   };
@@ -44,7 +43,7 @@ export default function Tenders() {
     } else {
       fetchTenders();
     }
-  }, [page, companyId]);
+  }, [page, companyIdFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +53,9 @@ export default function Tenders() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setForm({ title: '', description: '', deadline: '', budget: '', companyId: '' });
+      setForm({ title: '', description: '', deadline: '', budget: '' });
       fetchTenders();
-    } catch (err) {
+    } catch {
       alert('Failed to create tender');
     }
   };
@@ -68,11 +67,7 @@ export default function Tenders() {
     try {
       await axios.post(
         'http://localhost:5000/api/applications',
-        {
-          tenderId,
-          companyId: form.companyId || 'test-company-id',
-          content,
-        },
+        { tenderId, content },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -109,7 +104,7 @@ export default function Tenders() {
         🚪 Logout
       </button>
 
-      <h2>Tender Management</h2>
+      <h2>📦 Tender Management</h2>
 
       <form onSubmit={handleSubmit}>
         <input
@@ -138,53 +133,46 @@ export default function Tenders() {
           onChange={e => setForm({ ...form, budget: e.target.value })}
           required
         />
-        <input
-          type="text"
-          placeholder="Company ID"
-          value={form.companyId}
-          onChange={e => setForm({ ...form, companyId: e.target.value })}
-          required
-        />
-        <button type="submit">Create Tender</button>
+        <button type="submit">Publish Tender</button>
       </form>
 
       <br />
 
       <input
         type="text"
-        placeholder="Filter by Company ID"
-        value={companyId}
+        placeholder="🔍 Filter by Company ID"
+        value={companyIdFilter}
         onChange={e => {
-          setCompanyId(e.target.value);
+          setCompanyIdFilter(e.target.value);
           setPage(1);
         }}
       />
 
-      <h3>All Tenders</h3>
+      <h3>📃 All Tenders</h3>
       <ul>
-        {tenders.map((t: any) => (
-          <li key={t.id}>
-            <strong>{t.title}</strong> – ₹{t.budget} – {t.deadline}
+        {tenders.map((tender: any) => (
+          <li key={tender.id}>
+            <strong>{tender.title}</strong> – ₹{tender.budget} – {tender.deadline}
             <br />
-            {t.description}
+            <em>{tender.description}</em>
             <br />
-            Company ID: {t.companyId}
+            Company ID: {tender.companyId}
 
             <div>
-              {/* 🔘 Submit proposal */}
-              <button onClick={() => submitProposal(t.id)}>📩 Submit Proposal</button>
+              <button onClick={() => submitProposal(tender.id)}>📩 Submit Proposal</button>
 
-              {/* 📖 View proposals */}
-              <button onClick={() => fetchProposals(t.id)} style={{ marginLeft: '10px' }}>
+              <button
+                onClick={() => fetchProposals(tender.id)}
+                style={{ marginLeft: '10px' }}
+              >
                 📄 View Proposals
               </button>
 
-              {/* Show proposals */}
-              {proposals[t.id] && (
+              {proposals[tender.id] && (
                 <ul>
-                  {proposals[t.id].map((p, idx) => (
+                  {proposals[tender.id].map((p, idx) => (
                     <li key={idx}>
-                      <em>{p.companyId}</em>: {p.content}
+                      <em>{p.company_id}</em>: {p.content}
                     </li>
                   ))}
                 </ul>

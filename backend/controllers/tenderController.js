@@ -1,4 +1,5 @@
-const supabase = require('../supabaseClient');
+const supabase = require('../supabaseClient.js');
+
 
 // ✅ Create Tender
 // POST /api/tenders

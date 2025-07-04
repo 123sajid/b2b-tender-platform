@@ -10,10 +10,11 @@ export default function Companies() {
     description: '',
     logo: null as File | null,
   });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const navigate = useNavigate();
 
-  // ✅ Fetch companies with JWT
+  // ✅ Fetch all companies
   const fetchCompanies = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/company', {
@@ -22,8 +23,27 @@ export default function Companies() {
         },
       });
       setCompanies(res.data);
-    } catch (err: any) {
+    } catch {
       alert('Failed to fetch companies');
+    }
+  };
+
+  // ✅ Search companies
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return fetchCompanies();
+
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/company/search?query=${searchTerm}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      setCompanies(res.data);
+    } catch {
+      alert('Search failed');
     }
   };
 
@@ -54,7 +74,7 @@ export default function Companies() {
       });
       setForm({ name: '', industry: '', description: '', logo: null });
       fetchCompanies();
-    } catch (err: any) {
+    } catch {
       alert('Failed to create company');
     }
   };
@@ -67,12 +87,26 @@ export default function Companies() {
           localStorage.removeItem('token');
           navigate('/login');
         }}
+        style={{ float: 'right' }}
       >
         🚪 Logout
       </button>
 
       <h2>Company Management</h2>
 
+      {/* ✅ Search */}
+      <div style={{ marginBottom: '15px' }}>
+        <input
+          type="text"
+          placeholder="Search companies by name or industry"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          style={{ marginRight: '10px' }}
+        />
+        <button onClick={handleSearch}>🔍 Search</button>
+      </div>
+
+      {/* ✅ Create Form */}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -103,6 +137,7 @@ export default function Companies() {
         <button type="submit">Create Company</button>
       </form>
 
+      {/* ✅ Company List */}
       <h3>All Companies</h3>
       <ul>
         {companies.map((c: any) => (
@@ -112,7 +147,7 @@ export default function Companies() {
             {c.logo && <img src={c.logo} alt="logo" width={80} />}
             <br />
 
-            {/* Edit button */}
+            {/* Edit */}
             <button
               onClick={async () => {
                 const name = prompt('New name', c.name);
@@ -134,7 +169,7 @@ export default function Companies() {
               ✏️ Edit
             </button>
 
-            {/* Delete button */}
+            {/* Delete */}
             <button
               onClick={async () => {
                 if (confirm(`Delete ${c.name}?`)) {

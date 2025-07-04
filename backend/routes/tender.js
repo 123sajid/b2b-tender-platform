@@ -1,17 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getAll,
-  getById,
-  create,
-  update,
-  remove,
-} = require('../controllers/tenderController');
+const tenderController = require('../controllers/tenderController');
+const verifyToken = require('../middleware/verifyToken');
 
-router.get('/', getAll);
-router.get('/:id', getById);
-router.post('/', create);
-router.put('/:id', update);
-router.delete('/:id', remove);
+router.post('/', verifyToken, tenderController.createTender);
+router.get('/', tenderController.getAllTenders);
+router.get('/company/:companyId', tenderController.getTendersByCompany);
+router.delete('/:id', verifyToken, tenderController.deleteTender);
+router.put('/:id', verifyToken, tenderController.updateTender);
 
 module.exports = router;

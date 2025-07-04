@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const appController = require('../controllers/applicationController');
+const verifyToken = require('../middleware/verifyToken');
 
-// POST /api/applications
-router.post('/', appController.submitProposal);
+// Submit proposal
+router.post('/', verifyToken, appController.submitProposal);
 
-// GET /api/applications/:tenderId
-router.get('/:tenderId', appController.getProposalsByTender);
+// Get all proposals for a tender
+router.get('/:tenderId', appController.getApplicationsByTender);
+
+// Get all proposals by a specific company
+router.get('/company/:companyId', appController.getApplicationsByCompany);
+
+// Get all proposals by logged-in company
+router.get('/my', verifyToken, appController.getApplicationsByLoggedInCompany);
 
 module.exports = router;
