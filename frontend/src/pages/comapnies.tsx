@@ -3,17 +3,32 @@ import axios from 'axios';
 
 export default function Companies() {
   const [companies, setCompanies] = useState([]);
-  const [form, setForm] = useState({ name: '', industry: '', description: '', logo: null });
+  const [form, setForm] = useState({
+    name: '',
+    industry: '',
+    description: '',
+    logo: null as File | null,
+  });
 
+  // ✅ Fetch companies with JWT
   const fetchCompanies = async () => {
-    const res = await axios.get('http://localhost:5000/api/company');
-    setCompanies(res.data);
+    try {
+      const res = await axios.get('http://localhost:5000/api/company', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setCompanies(res.data); // ✅ set response to state
+    } catch (err: any) {
+      alert('Failed to fetch companies');
+    }
   };
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
+  // ✅ Submit form to create company
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData();
@@ -22,9 +37,17 @@ export default function Companies() {
     formData.append('description', form.description);
     if (form.logo) formData.append('logo', form.logo);
 
-    await axios.post('http://localhost:5000/api/company', formData);
-    setForm({ name: '', industry: '', description: '', logo: null });
-    fetchCompanies();
+    try {
+      await axios.post('http://localhost:5000/api/company', formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setForm({ name: '', industry: '', description: '', logo: null });
+      fetchCompanies();
+    } catch (err: any) {
+      alert('Failed to create company');
+    }
   };
 
   return (
@@ -52,53 +75,70 @@ export default function Companies() {
           onChange={e => setForm({ ...form, description: e.target.value })}
           required
         />
-        <input type="file" onChange={e => setForm({ ...form, logo: e.target.files?.[0] || null })} />
+        <input
+          type="file"
+          onChange={e =>
+            setForm({ ...form, logo: e.target.files?.[0] || null })
+          }
+        />
         <button type="submit">Create Company</button>
       </form>
 
       <h3>All Companies</h3>
       <ul>
-  {companies.map((c: any) => (
-    <li key={c.id}>
-      <strong>{c.name}</strong> – {c.industry}
-      <br />
-      {c.logo && <img src={c.logo} alt="logo" width={80} />}
+        {companies.map((c: any) => (
+          <li key={c.id}>
+            <strong>{c.name}</strong> – {c.industry}
+            <br />
+            {c.logo && <img src={c.logo} alt="logo" width={80} />}
+            <br />
 
-      {/* Inline edit form */}
-      <form
-        onSubmit={async e => {
-          e.preventDefault();
-          const name = prompt('New name', c.name);
-          const industry = prompt('New industry', c.industry);
-          const description = prompt('New description', c.description);
+            {/* Edit button */}
+            <button
+              onClick={async () => {
+                const name = prompt('New name', c.name);
+                const industry = prompt('New industry', c.industry);
+                const description = prompt('New description', c.description);
 
-          await axios.put(`http://localhost:5000/api/company/${c.id}`, {
-            name,
-            industry,
-            description,
-          });
-          fetchCompanies();
-        }}
-      >
-        <button type="submit">✏️ Edit</button>
-      </form>
+                await axios.put(
+                  `http://localhost:5000/api/company/${c.id}`,
+                  { name, industry, description },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                  }
+                );
+                fetchCompanies();
+              }}
+            >
+              ✏️ Edit
+            </button>
 
-      {/* Delete button */}
-      <button
-        onClick={async () => {
-          if (confirm(`Delete ${c.name}?`)) {
-            await axios.delete(`http://localhost:5000/api/company/${c.id}`);
-            fetchCompanies();
-          }
-        }}
-      >
-        🗑️ Delete
-      </button>
+            {/* Delete button */}
+            <button
+              onClick={async () => {
+                if (confirm(`Delete ${c.name}?`)) {
+                  await axios.delete(
+                    `http://localhost:5000/api/company/${c.id}`,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                      },
+                    }
+                  );
+                  fetchCompanies();
+                }
+              }}
+              style={{ marginLeft: '10px', color: 'red' }}
+            >
+              🗑️ Delete
+            </button>
 
-      <hr />
-    </li>
-  ))}
-</ul>
-</div>
+            <hr />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

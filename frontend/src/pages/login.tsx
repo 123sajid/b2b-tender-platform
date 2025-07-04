@@ -2,20 +2,17 @@ import { useState } from 'react';
 import axios from 'axios';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [form, setForm] = useState({ email: '', password: '' });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password,
-      });
-      localStorage.setItem('token', res.data.token);
-      alert('Login successful!');
+      const res = await axios.post('http://localhost:5000/api/auth/login', form);
+      localStorage.setItem('token', res.data.token); // ✅ Store JWT
+      alert('Login successful');
+      window.location.href = '/companies'; // Redirect after login
     } catch (err: any) {
-      alert(err?.response?.data?.message || 'Login failed');
+      alert('Login failed');
     }
   };
 
@@ -23,8 +20,20 @@ export default function Login() {
     <div>
       <h2>Login</h2>
       <form onSubmit={handleLogin}>
-        <input type="email" placeholder="Email" required onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="Password" required onChange={e => setPassword(e.target.value)} />
+        <input
+          type="email"
+          placeholder="Email"
+          value={form.email}
+          onChange={e => setForm({ ...form, email: e.target.value })}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={form.password}
+          onChange={e => setForm({ ...form, password: e.target.value })}
+          required
+        />
         <button type="submit">Login</button>
       </form>
     </div>
