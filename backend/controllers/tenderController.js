@@ -1,81 +1,76 @@
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const filePath = 'backend/models/tenders.json';
+const supabase = require('../supabaseClient');
 
-let tenders = require('../models/tenders.json');
-
-const saveTenders = data => fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-
-// GET /api/tenders?page=1&limit=5&companyId=xyz
-exports.getAll = (req, res) => {
-  let results = [...tenders];
-
-  const { page = 1, limit = 10, companyId } = req.query;
-
-  if (companyId) {
-    results = results.filter(t => t.companyId === companyId);
-  }
-
-  const start = (page - 1) * limit;
-  const paginated = results.slice(start, start + Number(limit));
-
-  res.json({
-    page: Number(page),
-    limit: Number(limit),
-    total: results.length,
-    tenders: paginated,
-  });
-};
-
-// GET /api/tenders/:id
-exports.getById = (req, res) => {
-  const tender = tenders.find(t => t.id === req.params.id);
-  if (!tender) return res.status(404).json({ message: 'Tender not found' });
-  res.json(tender);
-};
-
+// ✅ Create Tender
 // POST /api/tenders
-exports.create = (req, res) => {
-  const { title, description, deadline, budget, companyId } = req.body;
-
-  const newTender = {
-    id: uuidv4(),
-    title,
-    description,
-    deadline,
-    budget,
-    companyId,
-  };
-
-  tenders.push(newTender);
-  saveTenders(tenders);
-  res.status(201).json(newTender);
-};
-
-// PUT /api/tenders/:id
-exports.update = (req, res) => {
-  const index = tenders.findIndex(t => t.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Tender not found' });
-
+exports.createTender = async (req, res) => {
+  const companyId = req.user.id; // from JWT
   const { title, description, deadline, budget } = req.body;
-  tenders[index] = {
-    ...tenders[index],
-    title: title ?? tenders[index].title,
-    description: description ?? tenders[index].description,
-    deadline: deadline ?? tenders[index].deadline,
-    budget: budget ?? tenders[index].budget,
-  };
 
-  saveTenders(tenders);
-  res.json(tenders[index]);
+  const { data, error } = await supabase
+    .from('tenders')
+    .insert([{ title, description, deadline, budget, company_id: companyId }])
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data[0]);
 };
 
-// DELETE /api/tenders/:id
-exports.remove = (req, res) => {
-  const index = tenders.findIndex(t => t.id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Tender not found' });
+// ✅ Get All Tenders (with pagination)
+// GET /api/tenders?page=1&limit=10
+exports.getAllTenders = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-  const deleted = tenders.splice(index, 1);
-  saveTenders(tenders);
-  res.json({ message: 'Deleted', deleted });
+  const { data, error, count } = await supabase
+    .from('tenders')
+    .select('*', { count: 'exact' })
+    .range(from, to)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ tenders: data, total: count });
+};
+
+// ✅ Get Tenders by Company
+// GET /api/tenders/company/:companyId
+exports.getTendersByCompany = async (req, res) => {
+  const { companyId } = req.params;
+
+  const { data, error } = await supabase
+    .from('tenders')
+    .select('*')
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+};
+
+// ✅ Delete Tender
+// DELETE /api/tenders/:id
+exports.deleteTender = async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase.from('tenders').delete().eq('id', id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ success: true });
+};
+
+// ✅ Update Tender
+// PUT /api/tenders/:id
+exports.updateTender = async (req, res) => {
+  const { id } = req.params;
+  const { title, description, deadline, budget } = req.body;
+
+  const { data, error } = await supabase
+    .from('tenders')
+    .update({ title, description, deadline, budget })
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data[0]);
 };
