@@ -1,37 +1,44 @@
-const fs = require('fs');
-const path = require('path');
-const applicationsPath = path.join(__dirname, '../models/applications.json');
-
-function readApplications() {
-  return JSON.parse(fs.readFileSync(applicationsPath));
-}
-
-function writeApplications(data) {
-  fs.writeFileSync(applicationsPath, JSON.stringify(data, null, 2));
-}
+const supabase = require('../supabaseClient');
 
 // ✅ Submit Proposal
-exports.submitProposal = (req, res) => {
-  const { tenderId, companyId, content } = req.body;
-  const applications = readApplications();
+// POST /api/applications
+exports.submitProposal = async (req, res) => {
+  const companyId = req.user.id; // from JWT
+  const { tenderId, content } = req.body;
 
-  const newApp = {
-    id: Date.now().toString(),
-    tenderId,
-    companyId,
-    content,
-    submittedAt: new Date().toISOString(),
-  };
+  const { data, error } = await supabase
+    .from('applications')
+    .insert([{ tender_id: tenderId, company_id: companyId, content }])
+    .select();
 
-  applications.push(newApp);
-  writeApplications(applications);
-  res.status(201).json(newApp);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json(data[0]);
 };
 
-// ✅ Get All Proposals for Tender
-exports.getProposalsByTender = (req, res) => {
+// ✅ Get All Proposals for a Tender
+// GET /api/applications/:tenderId
+exports.getApplicationsByTender = async (req, res) => {
   const { tenderId } = req.params;
-  const applications = readApplications();
-  const filtered = applications.filter(app => app.tenderId === tenderId);
-  res.json(filtered);
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*, companies(name)')
+    .eq('tender_id', tenderId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+};
+
+// ✅ Get All Proposals by Company (My Applications)
+// GET /api/applications/company/:companyId
+exports.getApplicationsByCompany = async (req, res) => {
+  const { companyId } = req.params;
+
+  const { data, error } = await supabase
+    .from('applications')
+    .select('*, tenders(title, deadline)')
+    .eq('company_id', companyId);
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 };
