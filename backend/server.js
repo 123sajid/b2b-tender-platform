@@ -2,25 +2,29 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const companyRoutes = require('./routes/company');
+const tenderRoutes = require('./routes/tender');
+const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 const PORT = 5000;
 
-// ✅ Middleware first
+// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ Root route
+// ✅ Root route for health check
 app.get('/', (req, res) => {
   res.send('🚀 B2B Tender Backend is running!');
 });
 
-// ✅ Auth routes
+// ✅ Public Routes
 app.use('/api/auth', authRoutes);
 
-// ✅ Company routes
-app.use('/api/company', companyRoutes);
+// ✅ Protected Routes (Require JWT)
+app.use('/api/company', authMiddleware, companyRoutes);
+app.use('/api/tenders', authMiddleware, tenderRoutes);
 
+// ✅ Start Server
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
