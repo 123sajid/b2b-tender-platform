@@ -4,6 +4,7 @@ const authRoutes = require('./routes/auth');
 const companyRoutes = require('./routes/company');
 const tenderRoutes = require('./routes/tender');
 const authMiddleware = require('./middleware/authMiddleware');
+const applicationRoutes = require('./routes/application');
 
 const app = express();
 const PORT = 5000;
@@ -23,7 +24,7 @@ app.use('/api/auth', authRoutes);
 // ✅ Protected Routes (Require JWT)
 app.use('/api/company', authMiddleware, companyRoutes);
 app.use('/api/tenders', authMiddleware, tenderRoutes);
-
+app.use('/api/applications', applicationRoutes);
 // ✅ Start Server
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
