@@ -58,14 +58,47 @@ export default function Companies() {
 
       <h3>All Companies</h3>
       <ul>
-        {companies.map((c: any) => (
-          <li key={c.id}>
-            <strong>{c.name}</strong> - {c.industry}
-            <br />
-            {c.logo && <img src={c.logo} alt="logo" width={100} />}
-          </li>
-        ))}
-      </ul>
-    </div>
+  {companies.map((c: any) => (
+    <li key={c.id}>
+      <strong>{c.name}</strong> – {c.industry}
+      <br />
+      {c.logo && <img src={c.logo} alt="logo" width={80} />}
+
+      {/* Inline edit form */}
+      <form
+        onSubmit={async e => {
+          e.preventDefault();
+          const name = prompt('New name', c.name);
+          const industry = prompt('New industry', c.industry);
+          const description = prompt('New description', c.description);
+
+          await axios.put(`http://localhost:5000/api/company/${c.id}`, {
+            name,
+            industry,
+            description,
+          });
+          fetchCompanies();
+        }}
+      >
+        <button type="submit">✏️ Edit</button>
+      </form>
+
+      {/* Delete button */}
+      <button
+        onClick={async () => {
+          if (confirm(`Delete ${c.name}?`)) {
+            await axios.delete(`http://localhost:5000/api/company/${c.id}`);
+            fetchCompanies();
+          }
+        }}
+      >
+        🗑️ Delete
+      </button>
+
+      <hr />
+    </li>
+  ))}
+</ul>
+</div>
   );
 }
