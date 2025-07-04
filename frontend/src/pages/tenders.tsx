@@ -91,17 +91,54 @@ export default function Tenders() {
 
       <h3>All Tenders</h3>
       <ul>
-        {tenders.map((t: any) => (
-          <li key={t.id}>
-            <strong>{t.title}</strong> – {t.budget} – {t.deadline}
-            <br />
-            {t.description}
-            <br />
-            Company ID: {t.companyId}
-            <hr />
-          </li>
-        ))}
-      </ul>
+  {tenders.map((t: any) => (
+    <li key={t.id}>
+      <strong>{t.title}</strong> – ₹{t.budget} – {t.deadline}
+      <br />
+      {t.description}
+      <br />
+      Company ID: {t.companyId}
+      <br />
+
+      {/* Edit Button */}
+      <button
+        onClick={async () => {
+          const title = prompt('New title', t.title);
+          const description = prompt('New description', t.description);
+          const deadline = prompt('New deadline', t.deadline);
+          const budget = prompt('New budget', t.budget);
+
+          await axios.put(`http://localhost:5000/api/tenders/${t.id}`, {
+            title,
+            description,
+            deadline,
+            budget,
+          });
+
+          fetchTenders();
+        }}
+      >
+        ✏️ Edit
+      </button>
+
+      {/* Delete Button */}
+      <button
+        onClick={async () => {
+          if (confirm(`Delete tender "${t.title}"?`)) {
+            await axios.delete(`http://localhost:5000/api/tenders/${t.id}`);
+            fetchTenders();
+          }
+        }}
+        style={{ marginLeft: '10px', color: 'red' }}
+      >
+        🗑️ Delete
+      </button>
+
+      <hr />
+    </li>
+  ))}
+</ul>
+
 
       {/* Pagination */}
       <div>
