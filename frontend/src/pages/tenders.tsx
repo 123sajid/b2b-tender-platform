@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Tenders() {
@@ -14,30 +15,65 @@ export default function Tenders() {
   const [total, setTotal] = useState(0);
   const [companyId, setCompanyId] = useState('');
 
+  const navigate = useNavigate();
   const limit = 5; // Tenders per page
 
+  // ✅ Fetch tenders with auth
   const fetchTenders = async () => {
     const params: any = { page, limit };
     if (companyId) params.companyId = companyId;
 
-    const res = await axios.get('http://localhost:5000/api/tenders', { params });
-    setTenders(res.data.tenders);
-    setTotal(res.data.total);
+    try {
+      const res = await axios.get('http://localhost:5000/api/tenders', {
+        params,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setTenders(res.data.tenders);
+      setTotal(res.data.total);
+    } catch (err) {
+      alert('Failed to fetch tenders');
+    }
   };
 
+  // ✅ Check login before loading
   useEffect(() => {
-    fetchTenders();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    } else {
+      fetchTenders();
+    }
   }, [page, companyId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await axios.post('http://localhost:5000/api/tenders', form);
-    setForm({ title: '', description: '', deadline: '', budget: '', companyId: '' });
-    fetchTenders();
+    try {
+      await axios.post('http://localhost:5000/api/tenders', form, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setForm({ title: '', description: '', deadline: '', budget: '', companyId: '' });
+      fetchTenders();
+    } catch (err) {
+      alert('Failed to create tender');
+    }
   };
 
   return (
     <div>
+      {/* ✅ Logout Button */}
+      <button
+        onClick={() => {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }}
+      >
+        🚪 Logout
+      </button>
+
       <h2>Tender Management</h2>
 
       <form onSubmit={handleSubmit}>
@@ -91,54 +127,59 @@ export default function Tenders() {
 
       <h3>All Tenders</h3>
       <ul>
-  {tenders.map((t: any) => (
-    <li key={t.id}>
-      <strong>{t.title}</strong> – ₹{t.budget} – {t.deadline}
-      <br />
-      {t.description}
-      <br />
-      Company ID: {t.companyId}
-      <br />
+        {tenders.map((t: any) => (
+          <li key={t.id}>
+            <strong>{t.title}</strong> – ₹{t.budget} – {t.deadline}
+            <br />
+            {t.description}
+            <br />
+            Company ID: {t.companyId}
+            <br />
 
-      {/* Edit Button */}
-      <button
-        onClick={async () => {
-          const title = prompt('New title', t.title);
-          const description = prompt('New description', t.description);
-          const deadline = prompt('New deadline', t.deadline);
-          const budget = prompt('New budget', t.budget);
+            {/* Edit Button */}
+            <button
+              onClick={async () => {
+                const title = prompt('New title', t.title);
+                const description = prompt('New description', t.description);
+                const deadline = prompt('New deadline', t.deadline);
+                const budget = prompt('New budget', t.budget);
 
-          await axios.put(`http://localhost:5000/api/tenders/${t.id}`, {
-            title,
-            description,
-            deadline,
-            budget,
-          });
+                await axios.put(
+                  `http://localhost:5000/api/tenders/${t.id}`,
+                  { title, description, deadline, budget },
+                  {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                  }
+                );
+                fetchTenders();
+              }}
+            >
+              ✏️ Edit
+            </button>
 
-          fetchTenders();
-        }}
-      >
-        ✏️ Edit
-      </button>
+            {/* Delete Button */}
+            <button
+              onClick={async () => {
+                if (confirm(`Delete tender "${t.title}"?`)) {
+                  await axios.delete(`http://localhost:5000/api/tenders/${t.id}`, {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                  });
+                  fetchTenders();
+                }
+              }}
+              style={{ marginLeft: '10px', color: 'red' }}
+            >
+              🗑️ Delete
+            </button>
 
-      {/* Delete Button */}
-      <button
-        onClick={async () => {
-          if (confirm(`Delete tender "${t.title}"?`)) {
-            await axios.delete(`http://localhost:5000/api/tenders/${t.id}`);
-            fetchTenders();
-          }
-        }}
-        style={{ marginLeft: '10px', color: 'red' }}
-      >
-        🗑️ Delete
-      </button>
-
-      <hr />
-    </li>
-  ))}
-</ul>
-
+            <hr />
+          </li>
+        ))}
+      </ul>
 
       {/* Pagination */}
       <div>

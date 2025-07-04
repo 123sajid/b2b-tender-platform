@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Companies() {
@@ -10,6 +11,8 @@ export default function Companies() {
     logo: null as File | null,
   });
 
+  const navigate = useNavigate();
+
   // ✅ Fetch companies with JWT
   const fetchCompanies = async () => {
     try {
@@ -18,17 +21,23 @@ export default function Companies() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setCompanies(res.data); // ✅ set response to state
+      setCompanies(res.data);
     } catch (err: any) {
       alert('Failed to fetch companies');
     }
   };
 
+  // ✅ Protect route
   useEffect(() => {
-    fetchCompanies();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+    } else {
+      fetchCompanies();
+    }
   }, []);
 
-  // ✅ Submit form to create company
+  // ✅ Create company
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData();
@@ -52,6 +61,16 @@ export default function Companies() {
 
   return (
     <div>
+      {/* ✅ Logout */}
+      <button
+        onClick={() => {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }}
+      >
+        🚪 Logout
+      </button>
+
       <h2>Company Management</h2>
 
       <form onSubmit={handleSubmit}>
