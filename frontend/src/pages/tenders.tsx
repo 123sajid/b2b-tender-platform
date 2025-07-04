@@ -14,11 +14,11 @@ export default function Tenders() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [companyId, setCompanyId] = useState('');
+  const [proposals, setProposals] = useState<{ [key: string]: any[] }>({});
 
   const navigate = useNavigate();
-  const limit = 5; // Tenders per page
+  const limit = 5;
 
-  // ✅ Fetch tenders with auth
   const fetchTenders = async () => {
     const params: any = { page, limit };
     if (companyId) params.companyId = companyId;
@@ -37,7 +37,6 @@ export default function Tenders() {
     }
   };
 
-  // ✅ Check login before loading
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -62,9 +61,45 @@ export default function Tenders() {
     }
   };
 
+  const submitProposal = async (tenderId: string) => {
+    const content = prompt('Enter your proposal content:');
+    if (!content) return;
+
+    try {
+      await axios.post(
+        'http://localhost:5000/api/applications',
+        {
+          tenderId,
+          companyId: form.companyId || 'test-company-id',
+          content,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+      alert('✅ Proposal submitted!');
+    } catch {
+      alert('❌ Failed to submit proposal');
+    }
+  };
+
+  const fetchProposals = async (tenderId: string) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/applications/${tenderId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      setProposals(prev => ({ ...prev, [tenderId]: res.data }));
+    } catch {
+      alert('Failed to load proposals');
+    }
+  };
+
   return (
     <div>
-      {/* ✅ Logout Button */}
       <button
         onClick={() => {
           localStorage.removeItem('token');
@@ -121,7 +156,7 @@ export default function Tenders() {
         value={companyId}
         onChange={e => {
           setCompanyId(e.target.value);
-          setPage(1); // Reset page when filtering
+          setPage(1);
         }}
       />
 
@@ -134,47 +169,27 @@ export default function Tenders() {
             {t.description}
             <br />
             Company ID: {t.companyId}
-            <br />
 
-            {/* Edit Button */}
-            <button
-              onClick={async () => {
-                const title = prompt('New title', t.title);
-                const description = prompt('New description', t.description);
-                const deadline = prompt('New deadline', t.deadline);
-                const budget = prompt('New budget', t.budget);
+            <div>
+              {/* 🔘 Submit proposal */}
+              <button onClick={() => submitProposal(t.id)}>📩 Submit Proposal</button>
 
-                await axios.put(
-                  `http://localhost:5000/api/tenders/${t.id}`,
-                  { title, description, deadline, budget },
-                  {
-                    headers: {
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                  }
-                );
-                fetchTenders();
-              }}
-            >
-              ✏️ Edit
-            </button>
+              {/* 📖 View proposals */}
+              <button onClick={() => fetchProposals(t.id)} style={{ marginLeft: '10px' }}>
+                📄 View Proposals
+              </button>
 
-            {/* Delete Button */}
-            <button
-              onClick={async () => {
-                if (confirm(`Delete tender "${t.title}"?`)) {
-                  await axios.delete(`http://localhost:5000/api/tenders/${t.id}`, {
-                    headers: {
-                      Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                  });
-                  fetchTenders();
-                }
-              }}
-              style={{ marginLeft: '10px', color: 'red' }}
-            >
-              🗑️ Delete
-            </button>
+              {/* Show proposals */}
+              {proposals[t.id] && (
+                <ul>
+                  {proposals[t.id].map((p, idx) => (
+                    <li key={idx}>
+                      <em>{p.companyId}</em>: {p.content}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <hr />
           </li>
